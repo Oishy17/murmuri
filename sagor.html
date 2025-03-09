@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Heart Sound Monitor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            background-repeat: no-repeat;
+            background-size: cover;
+            
+        }
+        canvas {
+            border: 1px solid black;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #dc7af1, #0b4c98);
+            width: 80%;
+
+        }
+        #numerical-values {
+            width: 60%;
+            margin: 0 auto;
+            border: 1.5px solid rgb(15, 15, 15);
+            padding: 10px;
+            background: linear-gradient(135deg, #3b3f92, #6a5acd); 
+            color:aliceblue;
+            font-weight: bolder;
+        }
+        .value-pair {
+            margin: 5px 0;
+        }
+        h1{
+            font-weight: bold;
+            color: rgb(51, 43, 15);
+        }
+        button{
+            background: linear-gradient(135deg, #4ab04a, #217728);
+            color: aliceblue;
+            height: 35px;
+            width: 160px;
+            font-weight: bolder;
+            border-radius: 5%;
+        }
+    </style>
+    <script>
+        let ws;
+        let signalData = [];
+        const maxDataPoints = 600; // 60 seconds at 10ms intervals
+
+        function initWebSocket() {
+            ws = new WebSocket('ws://' + window.location.hostname + ':81/');
+            ws.onmessage = function(event) {
+                const value = parseInt(event.data);
+                signalData.push(value);
+                if (signalData.length > maxDataPoints) {
+                    signalData.shift(); // Remove oldest data point
+                }
+                updatePlot();
+            };
+        }
+
+        function updatePlot() {
+            const canvas = document.getElementById('plot');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw the x and y axes
+            ctx.beginPath();
+            ctx.strokeStyle = "black";
+            ctx.lineWidth = 1;
+            ctx.moveTo(40, canvas.height / 2); // Y-axis
+            ctx.lineTo(canvas.width - 10, canvas.height / 2); // X-axis
+            ctx.stroke();
+
+            ctx.fillText("Time", canvas.width - 50, canvas.height / 2 + 20);
+            ctx.fillText("Amplitude", 10, 20);
+
+            // Plot the signal
+            ctx.beginPath();
+            ctx.strokeStyle = "blue";
+            ctx.lineWidth = 1;
+            for (let i = 0; i < signalData.length; i++) {
+                const x = 40 + (i / signalData.length) * (canvas.width - 50);
+                const y = canvas.height / 2 - (signalData[i] / 1023.0) * (canvas.height / 2 - 20);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // Display numerical values
+            const numericalBox = document.getElementById('numerical-values');
+            numericalBox.innerHTML = "<h3>Numerical Values</h3>";
+            for (let i = 0; i < signalData.length; i += 10) { // Show every 10th value
+                const time = (i / signalData.length).toFixed(2) + " s";
+                const amplitude = signalData[i].toFixed(2);
+                numericalBox.innerHTML += `<div class="value-pair">Time: ${time}, Amplitude: ${amplitude}</div>`;
+            }
+        }
+
+        function startRecording() {
+            fetch('/startRecording')
+                .then(response => response.text())
+                .then(data => {
+                    console.log(data);
+                    document.getElementById('recordingStatus').innerText = "Recording...";
+                    setTimeout(() => {
+                        document.getElementById('recordingStatus').innerText = "Recording stopped. Downloading audio...";
+                        window.location.href = "/downloadAudio"; // Automatically download after recording
+                    }, 40000); // Automatically stop after 40 seconds
+                });
+        }
+
+        function checkMurmur() {
+            document.getElementById('murmurStatus').innerText = "Checking for murmur...";
+            fetch('/checkMurmur')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('murmurStatus').innerText = data;
+                });
+        }
+
+        window.onload = function() {
+            initWebSocket();
+        };
+    </script>
+</head>
+<body>
+    <h1>Heart Sound Monitor</h1>
+    <canvas id="plot" width="800" height="400"></canvas>
+    <div id="numerical-values">
+        <h3>Numerical Values</h3>
+        <!-- Values will be dynamically added here -->
+    </div>
+    <p></p>
+    <p></p>
+    <button onclick="startRecording()">Start Recording</button>
+    <button onclick="checkMurmur()">Check Murmur</button>
+    <div id="recordingStatus"></div>
+    <div id="murmurStatus"></div>
+    <div><p></p></div>
+</body>
+</html>
