@@ -7,9 +7,10 @@
             font-family: Arial, sans-serif;
             text-align: center;
             background: linear-gradient(135deg, #667eea, #764ba2);
-            background-repeat: no-repeat;
-            background-size: cover;
-            
+            height: 100vh;
+           overflow: visible;
+           background-attachment: fixed;
+            background-color: #0b4c98;
         }
         canvas {
             border: 1px solid black;
@@ -125,7 +126,7 @@
         };
     </script>
 </head>
-<body>
+<body >
     <h1>Heart Sound Monitor</h1>
     <canvas id="plot" width="800" height="400"></canvas>
     <div id="numerical-values">
@@ -139,5 +140,6 @@
     <div id="recordingStatus"></div>
     <div id="murmurStatus"></div>
     <div><p></p></div>
+    
 </body>
 </html>
